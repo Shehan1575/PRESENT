@@ -1,454 +1,229 @@
-print("\n1 . Establishing Connections \n2 . Networking Device Comparison\n ")
-AccOp = int(input('Select one of the Deliveries :'))
-if AccOp == 1:
-    #Main Options
-    print(" \n  \n ")
-    print("---------------------------------------------")
-    print("    REMOTE CONNECTION SCRIPT by 21169059")
-    print("---------------------------------------------")
-    print('')
-    print("                |||||||||||||    ")
-    print("                 v 1 . 0 0 1")
-    print("                  21169059")
+from netmiko import ConnectHandler
+from getpass import getpass
+
+print('This script is made for the Uploaded topology with the code\nNetwork Devices---\n 1. 2x Routers\n 2. 2x Switches\n and -3x PCs')
+print('|nPlease check the topology uploaded and the ip addressing table for more info.\n\nPlease give Router and Switch SSH Logins:')
+
+Rhostname = input('Enter Router host ip Address:')
+Rusername = input('Enter Router username : ')
+Rpassword = getpass('Enter Router password : ')
+REnpass = getpass("Enter Router Enable Password")
+print('Router successfully saved.')
+
+Shostname = input('Enter Switch host ip Address:')
+Susername = input('Enter Switch username : ')
+Spassword = getpass('Enter Switch password : ')
+SEnpass = getpass("Enter Switch Enable Password")
+print('Switch successfully saved.')
 
 
-    ######################################################################################################################################
-    print(" \n \n \n")
+try:
+    Router1 = {
+        "device_type": "cisco_ios",
+        "host": Rhostname,
+        "username": Rusername,
+        "password": Rpassword,
+        "secret": REnpass
+    }
 
-    print("Please Select a Connection Method to continue \n 1. Telnet  - Insecure \n 2. SSH     - Secured  \n 3. Save Device running-config \n 4. Exit")
-    print("")
-    op= int(input("Please Enter number of Method here:  "))
-    print(" \nYou selected Method", op, " \n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> \n ")
+    Switch1 = {
+        "device_type": "cisco_ios",
+        "host": Shostname,
+        "username": Susername,
+        "password": Spassword,
+        "secret": SEnpass
+    }
 
-    ######################################################################################################################################
-
-
-    def telnet():
-        import pexpect
+    def EIGRP():
+        net_connect.send_command("network 192.168.100.0 0.0.0.255")
+        net_connect.send_command("network 192.168.200.0 0.0.0.255")
+        net_connect.send_command("network 192.168.6.0 0.0.0.255")
+        net_connect.send_command("end")
+        output = net_connect.send_command("sh ip proto")
+        print(output)
+        net_connect.disconnect()
         
-        print("1.  Use netlab IP and Credentials \n2.  Use Custom IP and Log-In credentials")
-        sop=int(input("Select an Option : "))
-        if sop == 1:
-            ip_address = '192.168.56.101'
-            username = 'cisco'
-            password = 'cisco123!'
-            
-        elif sop == 2:
-            ip_address = str(input("Please enter Device IP : "))
-            username = str(input("Please enter Device username : "))
-            password = str(input("Please enter Device Password : "))
-            
-        else:
-            print("Invalid option Please select again")
-            exit()
+    def OSPF():
+        ospf_commands = ['','','','']
+        net_connect.send_config_set(ospf_commands)
         
-        telnetC = pexpect.spawn('telnet ' + ip_address, encoding='utf-8',timeout=20)
-        result = telnetC.expect(['Username:', pexpect.TIMEOUT])
+        net_connect.send_command("network 192.168.100.0 0.0.0.255 area 0")
+        net_connect.send_command("network 192.168.200.0 0.0.0.255 area 0")
+        net_connect.send_command("network 192.168.6.0 0.0.0.255 area 0")
+        net_connect.send_command("end")
+        output = net_connect.send_command("sh ip proto")
+        print(output)
+        net_connect.disconnect()
         
+    def RIP():
+        net_connect.send_command("network 192.168.100.0")
+        net_connect.send_command("network 192.168.200.0")
+        net_connect.send_command("network 192.168.6.0")
+        net_connect.send_command("end")
+        output = net_connect.send_command("sh ip route")
+        print(output)
+        net_connect.disconnect()
         
-        if result != 0:
-            print('>>>> !!!! Session Creation Failed for : ', ip_address, "!!!! <<<<")
-            exit()
+    print('\nAll the basic Configurations ignored because SSH enabled means Device is already configured. \n')  
+    PC=int(input("Which protocol do you want to configure in Router1?\n 1. EIGRP\n 2. OSPF\n 3. RIP"))
+    print('Connecting the Router')
+    net_connect = ConnectHandler(**Router1)
+    intcoms = ['enable','conf t','int loopback1','ip address 192.168.2.1 255.255.255.0','int g0/1.100','encapsulation det1q 100','ip address 192.168.100.1 255.255.255.0','int g0/1.200','encapsulation det1q 200','ip address 192.168.200.1 255.255.255.0','int s0/0/0','ip address 192.168.6.1','exit']
 
-       
-
-        telnetC.sendline(username)
-        result = telnetC.expect(['Password:', pexpect.TIMEOUT])
-
-        if result != 0:
-            print('>>>> Entering username Failed for : ', username)
-            exit()
-
-        telnetC.sendline(password)
-        result = telnetC.expect(['#', pexpect.TIMEOUT])
-
-        if result != 0:
-            print('>>>> Entering Password Failed :', password)
-            exit()
+    for i in range(0,len(intcoms)):
+        net_connect.send_command(intcoms[i])
         
-       
-        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-        print('')
-        print('--- Telnet Connection Successfull to : ', ip_address, " \n ")
-        print('          >>>> Username: ', username)
-        print('          >>>> Password: ', password)
-        print('')
-        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
-
-        print("||||||||||||||||||||||||||||||||||||||||||||||||||||||")
-        
-        telnetC.sendline('quit')    #Terminated following lab exercises.
-
-    ######################################################################################################################################
-
-    def ssh():
-        import pexpect
-        print("1.  Use netlab IP and Credentials \n2.  Use Custom IP and Log-In credentials")
-        shop=int(input("Select an Option : "))
-        if shop == 1:
-            ip_addresssh = '192.168.56.101'
-            usernamesh = 'prne'
-            passwordsh = 'cisco123!'
-            password_enablesh = 'class123!'
+    if PC == 1:
+        try: 
+            net_connect.send_command("router eigrp 10") 
+            EIGRP()
+        except:
+            print('Configuring Router Failed!')
             
-        elif shop == 2:
-            ip_addresssh = str(input("Please enter Device IP : "))
-            usernamesh = str(input("Please enter Device username : "))
-            passwordsh = str(input("Please enter Device Password : "))
-            password_enablesh = str(input("Please enter Device enable M Password : "))
-           
-        else:
-            print("Invalid option Please select again")
-            exit()
-            
-        sshs = pexpect.spawn('ssh ' + usernamesh + '@' + ip_addresssh, encoding='utf-8', timeout=20)
-        result = sshs.expect(['Password:', pexpect.TIMEOUT, pexpect.EOF])
-        
-        if result != 0:
-            print('>>>> Creating ssh session Failed for: ', ip_addresssh)
-            exit()
-            
-        sshs.sendline(passwordsh)
-        result = sshs.expect(['>', pexpect.TIMEOUT, pexpect.EOF])
+    if PC == 2:
+        try: 
+            net_connect.send_command("router ospf 1") 
+            OSPF()
+        except:
+            print('Configuring Router Failed!')
 
-        if result != 0:
-            print('>>>> Entering password Failed for: ', passwordsh)
-            exit()
-            
-        sshs.sendline('enable')
-        result = sshs.expect(['Password:', pexpect.TIMEOUT, pexpect.EOF])
-
-        if result != 0:
-            print('>>>> Entering enable mode Failed')
-            exit()
-
-        sshs.sendline(password_enablesh)
-        result = sshs.expect(['#', pexpect.TIMEOUT, pexpect.EOF])
-
-        if result != 0:
-            print('>>>> Entering enable mode Failed after sending password')
-            exit()
-            
-        sshs.sendline('configure terminal')
-        result = sshs.expect([r'.\(config\)#', pexpect.TIMEOUT, pexpect.EOF])
-
-        if result != 0:
-            print('>>>> Entering config mode Failed')
-            exit()
-        
-        sshs.sendline('hostname R1')
-        result = sshs.expect([r'R1\(config\)#', pexpect.TIMEOUT, pexpect.EOF])
-
-        if result != 0:
-            print('>>>> Setting hostname Failed')
-            
-        sshs.sendline('exit')
-
-        sshs.sendline('exit')
-        
-        print('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-        print('')
-        print('--- SSH Connection Successfull to : ', ip_addresssh, " \n ")
-        print('          >>>> Username: ', usernamesh)
-        print('          >>>> Password: ', passwordsh)
-        print('')
-        print('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
-
-        print("||||||||||||||||||||||||||||||||||||||||||||||||||||||")
-        sshs.close() #Terminated following lab exercises.
-
-    ######################################################################################################################################
-
-    if op == 4:
-        print("Script Stoped by the User.")
-        pass
-    elif op in range(1,4):
-
-            
-        if op == 1:
-            telnet()
-        if op == 2:
-            ssh()
-        if op == 3:
-            #This backup script uses telnet as the remote connection and I have used these pexpect commands 
-            #following DEVASC-labvm's CSR1000v .   (like no enable password and direcly telnet goes to enable mode after login)
-            import pexpect
-
-            print('1. Use DEVASC labvm Ip and Login \n2. Use custom Ip and Login')
-            login_op= int(input("Please enter an option : "))
-            if login_op == 1:
-                ip_addressbu = '192.168.56.101'
-                usernamebu = 'cisco'
-                passwordbu = 'cisco123!'
-            elif login_op == 2:
-                ip_addressbu = str(input("Enter IP address : "))
-                usernamebu = str(input("Enter Username : "))
-                passwordbu = str(input("Enter Password : "))
+    if PC == 3:
+        try:
+            net_connect.send_command("router rip")
+            RIP()
+        except:
+            print('Configuring Router Failed!')
                 
-            else:
-                print("Invalid option Please select again")
-                exit()
-             
+    print('\nRouter has been Configured\n')
+    print('\n\n----------Switch Vlan Configuration-----------\n\n')
 
-            backupsession = pexpect.spawn('telnet ' + ip_addressbu)
-            backupsession.expect('Username:')
-            backupsession.sendline(usernamebu)
-            backupsession.expect('Password')
-            backupsession.sendline(passwordbu)
-            backupsession.expect('#')
-            backupsession.sendline('terminal leng 0')
-            backupsession.expect('#')
-            backupsession.sendline('show run')
-            backupsession.expect('#')
-            show_run = backupsession.before
-            filename = ip_addressbu + ' show run.txt'
-            file = open(filename, 'wb')
-            file.write(show_run)
-            file.close()
-            backupsession.close()
-            print('')
-            print('Runing-Config has been successfully backed Up.\nto see the file location use [ pwd ] command')
-            print('')
-    else:
-        print('Invalid Input Please try agin')
+    net_connect = ConnectHandler(**Switch1)
+    
+    intcomsS = ["enable","conf t","Vlan 100","exit","Vlan 200","exit","int f0/2","switchport access vlan 100","switchport mode access","int f0/3","switchport access vlan 200","switchport mode access","int g0/1","no shut","switchport mode trunk","end"]
+
+    for i in range(0,len(intcomsS)):
+        net_connect.send_command(intcomsS[i])
         
-    ######################################################################################################################################
-if AccOp == 2:
-    import pexpect
-    print('\n \n \n1 .Compare the current running-config\n2 .Remote Device comparison\n \n5. Use Telnet for remote device comparison.\n ')
-    op=int(input('Select and Option : '))
-    if op == 5:
-        #This backup script uses telnet as the remote connection and I have used these pexpect commands 
-        #following DEVASC-labvm's CSR1000v .   (like no enable password and direcly telnet goes to enable mode after login)
+    output = net_connect.send_command("sh vlan brief")
+    print(output)
+    net_connect.disconnect()
+
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX-BACKUP-CODE-PEXPECT-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX#
+
+except:
+    print('Something is went wronge with the ssh connection through netmiko and Changing to Backup Method.')
+    print('Importing Required Modules...')
+    try:
         import pexpect
-
-        print('\n \n \n1. Use DEVASC labvm Ip and Login \n2. Use custom Ip and Login')
-        login_op= int(input("Please enter an option : "))
-        if login_op == 1:
-            ip_addressbu = '192.168.56.101'
-            usernamebu = 'cisco'
-            passwordbu = 'cisco123!'
-        elif login_op == 2:
-            ip_addressbu = str(input("Enter IP address : "))
-            usernamebu = str(input("Enter Username : "))
-            passwordbu = str(input("Enter Password : "))
+        def pexEIGRP():
+            ssh.sendline("network 192.168.100.0 0.0.0.255")
+            ssh.sendline("network 192.168.200.0 0.0.0.255")
+            ssh.sendline("network 192.168.6.0 0.0.0.255")
+            ssh.sendline("end")
+            ssh.sendline('sh ip proto')
+            shproto=ssh.before()
+            print(shproto)
+            ssh.sendline(exit)
             
-        else:
-            print("Invalid option Please select again")
-            exit()
-         
-
-        backupsession = pexpect.spawn('telnet ' + ip_addressbu)
-        backupsession.expect('Username:')
-        backupsession.sendline(usernamebu)
-        backupsession.expect('Password')
-        backupsession.sendline(passwordbu)
-        backupsession.expect('#')
-        backupsession.sendline('terminal leng 0')
-        backupsession.expect('#')
-        backupsession.sendline('show run')
-        backupsession.expect('#')
-        show_run = backupsession.before
-        filename ='Running-Conf.txt'
-        file = open(filename, 'wb')
-        file.write(show_run)
-        file.close()
+        def pexOSPF():
+            ssh.sendline("network 192.168.100.0 0.0.0.255 area 0")
+            ssh.sendline("network 192.168.200.0 0.0.0.255 area 0")
+            ssh.sendline("network 192.168.6.0 0.0.0.255 area 0")
+            ssh.sendline("end")
+            ssh.sendline('sh ip proto')
+            shproto=ssh.before()
+            print(shproto)
+            ssh.sendline('exit')
         
-        
-    #***************************************************************#
-
-        backupsession.sendline('show start')
-        backupsession.expect('#')
-        show_stat = backupsession.before
-        filename = 'StartUp-Conf.txt'
-        file = open(filename, 'wb')
-        file.write(show_stat)
-        file.close()
-        
-        backupsession.close()
-
-        stat_file=open('StartUp-Conf.txt',"r")
-        run_file=open('Running-Conf.txt',"r")
-        fx=open('diffs.txt','w')
-        fx.close()
-        fx=open('diffs.txt','a')
-        d=[]
-        c=[]
-
-
-        for line in stat_file:
-            dil = line.split(',')
-            if dil == ['startup-config is not present']:
-                print("No startup-config is set to Compare")
-                break
-            else:
-                if dil == ['!']:
-                    continue
-                else:
-                    c.append(dil)
-
+        def pexRIP():
+            ssh.sendline("network 192.168.100.0")
+            ssh.sendline("network 192.168.200.0")
+            ssh.sendline("network 192.168.6.0")
+            ssh.sendline("end")
+            ssh.sendline("sh ip route")
+            shrou = ssh.before()
+            print(shrou)
+            ssh.sendline("exit")
             
-        for line1 in run_file:
-            fil = line1.split(',')
-            if fil == ['!']:
-                continue
-            else:
-                d.append(fil)
 
-        for i in range(5,len(d)):
-            if d[i] not in c:
-                fx=open('diffs.txt','a')
-                fx.write('\n'.join(d[i]))
+        print('\nAll the basic Configurations ignored because SSH enabled means Device is already configured. \n')  
+        PC=int(input("Which protocol do you want to configure in Router1?\n 1. EIGRP\n 2. OSPF\n 3. RIP"))
+
+        ssh = pexpect.spawn('ssh ' + Rusername + '@' + Rhostname)
+        result = ssh.expect('Password:')
+
+        ssh.sendline(Rpassword)
+        result = ssh.expect('>')
+        ssh.sendline('enable')
+        result = ssh.expect('Password:')
+        ssh.sendline(REnpass)
+        result = ssh.expect('#')
+        ssh.sendline('configure terminal')
+        result = ssh.expect(r'.\(config\)#')
+        ssh.sendline('int loopback1')
+        ssh.sendline('ip address 192.168.2.1 255.255.255.0')
+        ssh.sendline('int g0/1.100')
+        result = ssh.expect('#')
+        ssh.sendline('encapsulation det1q 100')
+        result = ssh.expect('#')
+        ssh.sendline('ip address 192.168.100.1 255.255.255.0')
+        ssh.sendline('int g0/1.200')
+        ssh.sendline('encapsulation det1q 200')
+        ssh.sendline('ip address 192.168.200.1 255.255.255.0')
+        ssh.sendline('int s0/0/0')
+        ssh.sendline('ip address 192.168.6.1')
+        ssh.sendline('exit')
+
+        if PC == 1:
+            try: 
+                ssh.sendline("router eigrp 10") 
+                pexEIGRP()
+            except:
+                print('Configuring Router Failed!')
                 
-        g=open('diffs.txt','r')
-        print('\n \n \n****PRITING CONFIG DIFFERENCES****\n \n \n ')
-        for line in g:
-            print(line)
+        if PC == 2:
+            try: 
+                ssh.sendline("router ospf 1") 
+                pexOSPF()
+            except:
+                print('Configuring Router Failed!')
 
-
-    if op == 2:
-        import pexpect
-        print("\n \n \n1.  Use netlab IP and Credentials \n2.  Use Custom IP and Log-In credentials")
-        shop=int(input("Select an Option : "))
-        if shop == 1:
-            ip_addresssh = '192.168.56.101'
-            usernamesh = 'prne'
-            passwordsh = 'cisco123!'
-            password_enablesh = 'class123!'
+        if PC == 3:
+            try:
+                ssh.sendline("router rip")
+                pexRIP()
+            except:
+                print('Configuring Router Failed!')
             
-        elif shop == 2:
-            ip_addresssh = str(input("Please enter Device IP : "))
-            usernamesh = str(input("Please enter Device username : "))
-            passwordsh = str(input("Please enter Device Password : "))
-            password_enablesh = str(input("Please enter Device enable M Password : "))
-           
-        else:
-            print("Invalid option Please select again")
-            exit()
-            
-        sshs = pexpect.spawn('ssh ' + usernamesh + '@' + ip_addresssh, encoding='utf-8', timeout=20)
-        result = sshs.expect(['Password:', pexpect.TIMEOUT, pexpect.EOF])
-        
-        if result != 0:
-            print('>>>> Creating ssh session Failed for: ', ip_addresssh)
-            exit()
-            
-        sshs.sendline(passwordsh)
-        result = sshs.expect('>')
+        print('\nRouter has been Configured\n')
+        print('\n\n----------Switch Vlan Configuration-----------\n\n')
 
-        sshs.sendline('enable')
-        result = sshs.expect('Password:')
-
-        sshs.sendline(password_enablesh)
-        result = sshs.expect('#')
-
-        sshs.sendline('terminal leng 0')
-        sshs.expect('#')
-        sshs.sendline('show run')
-        sshs.expect('#')
-        show_run = sshs.before
-        filename = 'Running-Conf.txt'
-        file = open(filename, 'w')
-        file.write(sshs.before)
-        file.close()
-        
-    #***************************************************************#
-
-        sshs.sendline('show start')
-        sshs.expect('#')
-        show_stat = sshs.before
-        filename = 'StartUp-Conf.txt'
-        file = open(filename, 'w')
-        file.write(show_stat)
-        file.close()
-        sshs.close()
-        
-        
-        stat_file=open('StartUp-Conf.txt',"r")
-        run_file=open('Running-Conf.txt',"r")
-        fx=open('diffs.txt','w')
-        fx.close()
-        fx=open('diffs.txt','a')
-        d=[]
-        c=[]
-
-
-        for line in stat_file:
-            dil = line.split(',')
-            if dil == ['startup-config is not present']:
-                print("No startup-config is set to Compare")
-                break
-            else:
-                if dil == ['!']:
-                    continue
-                else:
-                    c.append(dil)
-
-            
-        for line1 in run_file:
-            fil = line1.split(',')
-            if fil == ['!']:
-                continue
-            else:
-                d.append(fil)
-
-        for i in range(5,len(d)):
-            if d[i] not in c:
-                fx=open('diffs.txt','a')
-                fx.write('\n'.join(d[i]))
-                
-        g=open('diffs.txt','r')
-            
-        print('\n \n \n****PRITING CONFIG DIFFERENCES****\n \n \n ')
-        for line in g:
-            print(line)
-                
-#*******************************************************************************************
-        
-    if op == 1:
-        import pexpect
-        print("\n \n \n1.  Use netlab IP and Credentials \n2.  Use Custom IP and Log-In credentials")
-        shop=int(input("Select an Option : "))
-        if shop == 1:
-            ip_addresssh = '192.168.56.101'
-            usernamesh = 'prne'
-            passwordsh = 'cisco123!'
-            password_enablesh = 'class123!'
-            
-        elif shop == 2:
-            ip_addresssh = str(input("Please enter Device IP : "))
-            usernamesh = str(input("Please enter Device username : "))
-            passwordsh = str(input("Please enter Device Password : "))
-            password_enablesh = str(input("Please enter Device enable M Password : "))
-           
-        else:
-            print("Invalid option Please select again")
-            exit()
-            
-        sshs = pexpect.spawn('ssh ' + usernamesh + '@' + ip_addresssh, encoding='utf-8', timeout=20)
-        
-        result = sshs.expect(['Password:', pexpect.TIMEOUT, pexpect.EOF])
-        
-        if result != 0:
-            print('>>>> Creating ssh session Failed for: ', ip_addresssh)
-            exit()
-            
-        sshs.sendline(passwordsh)
-        result = sshs.expect('>')
-
-        sshs.sendline('enable')
-        result = sshs.expect('Password:')
-
-        sshs.sendline(password_enablesh)
-        result = sshs.expect('#')
-
-        sshs.sendline('terminal length 0')
-        sshs.expect('#')
-        sshs.sendline('show archive config differences')
-        sshs.expect('#')
-        show_run = sshs.before
-        print(show_run)
-        sshs.close()
-        
-        
-    #***************************************************************#
+        ssh = pexpect.spawn('ssh ' + Susername + '@' + Shostname)
+        result = ssh.expect('Password:')
+        ssh.sendline(Spassword)
+        result = ssh.expect('>')
+        ssh.sendline('enable')
+        result = ssh.expect('Password:')
+        ssh.sendline(SEnpass)
+        result = ssh.expect('#')
+        ssh.sendline('configure terminal')
+        result = ssh.expect(r'.\(config\)#')
+        ssh.sendline("Vlan 100")
+        ssh.sendline("exit")
+        ssh.sendline("Vlan 200")
+        ssh.sendline("exit")
+        ssh.sendline("int f0/2")
+        ssh.sendline("switchport access vlan 100")
+        ssh.sendline("switchport mode access")
+        ssh.sendline("int f0/3")
+        ssh.sendline("switchport access vlan 200")
+        ssh.sendline("switchport mode access")
+        ssh.sendline("int g0/1")
+        ssh.sendline("no shut")
+        ssh.sendline("switchport mode trunk")
+        ssh.sendline('end')
+        shproto=ssh.before()
+        print(shproto)
+        ssh.sendline(exit)
+    except:
+        print("Failed to skip SSH key.  !!!-PLEASE ACCEPT THE SSH KEY MANUALLY-!!! then try again. ")
